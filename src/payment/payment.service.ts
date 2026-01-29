@@ -1,26 +1,54 @@
-import { Injectable } from '@nestjs/common';
-import { CreatePaymentDto } from './dto/create-payment.dto';
-import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { OrderService } from 'src/order/order.service';
+import { Repository } from 'typeorm';
+import { Payment, PaymentStatus } from './entities/payment.entity';
+import { MockPaymentGateway } from './payment-mock.gateway';
+import { InjectRepository } from '@nestjs/typeorm';
+import { OrderStatus } from 'src/order/entities/order.entity';
 
 @Injectable()
 export class PaymentService {
-  create(createPaymentDto: CreatePaymentDto) {
-    return 'This action adds a new payment';
-  }
+  constructor(
+    @InjectRepository(Payment)
+    private readonly paymentRepo: Repository<Payment>,
+    private readonly orderService: OrderService,
+    private readonly gateway: MockPaymentGateway,
+  ) {}
 
-  findAll() {
-    return `This action returns all payment`;
-  }
+  async processPayment(orderId: number) {
+    const order = await this.orderService.findByIdOrFail(orderId);
 
-  findOne(id: number) {
-    return `This action returns a #${id} payment`;
-  }
+    if (order.status !== OrderStatus.CREATED) {
+      throw new BadRequestException(
+        'Order is not in a valid state for payment',
+      );
+    }
 
-  update(id: number, updatePaymentDto: UpdatePaymentDto) {
-    return `This action updates a #${id} payment`;
-  }
+    const payment = this.paymentRepo.create({
+      orderId,
+      amount: order.amount,
+      status: PaymentStatus.INIT,
+    });
 
-  remove(id: number) {
-    return `This action removes a #${id} payment`;
+    await this.paymentRepo.save(payment);
+
+    // 🔥 External dependency
+    const result = await this.gateway.charge(payment.amount);
+
+    if (result.success) {
+      payment.status = PaymentStatus.SUCCESS;
+      await this.paymentRepo.save(payment);
+
+      // ❗ Direct synchronous call
+      await this.orderService.markAsPaid(orderId);
+
+      return { success: true };
+    }
+
+    payment.status = PaymentStatus.FAILED;
+    await this.paymentRepo.save(payment);
+
+    await this.orderService.markAsFailed(orderId);
+    return { success: false };
   }
 }
