@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: distributed-payment
+      POSTGRES_DB: "distributed-payment"
     ports:
       - "6805:5432"
     volumes:
