@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:18
+    # restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: distributed-payment
+    ports:
+      - "6805:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+  cache:
+    image: redis
+    # restart: always
+    ports:
+      - "6800:6379"
+
+volumes:
+  postgres_data:
