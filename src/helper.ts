@@ -1,4 +1,4 @@
-export const sleep = (ms: number) =>
+export const delay = (ms: number) =>
   new Promise((resolve) => {
     console.log(`Sleeping for ${ms} ms...`);
     setTimeout(resolve, ms);
@@ -16,7 +16,7 @@ export const retry = async <T>(
     } catch (error) {
       lastError = error;
       if (attempt < retries) {
-        await sleep(delayMs);
+        await delay(delayMs);
         console.log(`Retrying... Attempt ${attempt + 1}`);
       }
     }
@@ -24,4 +24,12 @@ export const retry = async <T>(
 
   console.log('All retry attempts failed.');
   throw lastError;
+};
+
+export const randomFlag = (probability: number = 0.5): boolean => {
+  return Math.random() < probability;
+};
+
+export const randomMs = (maxMs: number = 3000): number => {
+  return Math.floor(Math.random() * maxMs); // Random ms between 0 and maxMs
 };
