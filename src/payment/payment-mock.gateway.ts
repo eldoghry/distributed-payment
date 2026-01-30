@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 
 @Injectable()
@@ -12,7 +12,7 @@ export class MockPaymentGateway {
     console.log(`💰 Charging amount: ${amount}. Success: ${!shouldFail}`);
 
     if (shouldFail) {
-      throw new Error('Mock payment gateway failure');
+      throw new ServiceUnavailableException('Mock payment gateway failure');
     }
 
     return { success: true, paymentId: randomBytes(10).toString('hex') };

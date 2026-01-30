@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Payment, PaymentStatus } from './entities/payment.entity';
 import { MockPaymentGateway } from './payment-mock.gateway';
 import { InjectRepository } from '@nestjs/typeorm';
-import { sleep } from 'src/helper';
+import { delay, randomMs as randomTimeMs } from 'src/helper';
 
 @Injectable()
 export class PaymentService {
@@ -15,9 +15,13 @@ export class PaymentService {
   ) {}
 
   async charge(orderId: number, amount: number, idempotencyKey: string) {
-    await sleep(5000); // Simulate network delay
+    await delay(randomTimeMs()); // Simulate network delay
 
     const existing = await this.paymentRepo.findOneBy({ idempotencyKey });
+
+    const payment = existing
+      ? existing
+      : await this.create(orderId, amount, idempotencyKey);
 
     if (existing && existing.status === PaymentStatus.SUCCESS) {
       console.log(
@@ -28,10 +32,6 @@ export class PaymentService {
         paymentId: existing.paymentId,
       };
     }
-
-    const payment = existing
-      ? existing
-      : await this.create(orderId, amount, idempotencyKey);
 
     // 🔥 External dependency
     try {

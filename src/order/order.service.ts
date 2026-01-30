@@ -1,8 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
+import { delay, randomFlag } from 'src/helper';
 
 @Injectable()
 export class OrderService {
@@ -20,6 +25,12 @@ export class OrderService {
   }
 
   async markAsPaid(orderId: number) {
+    const simulateFail = randomFlag();
+    if (simulateFail) {
+      throw new Error('Simulated failure in marking order as PAID');
+    }
+
+    await delay(5000); // Simulate some processing delay
     const order = await this.orderRepo.findOneBy({ id: orderId });
     if (!order) throw new Error('Order not found');
 
@@ -47,6 +58,15 @@ export class OrderService {
   async findByIdOrFail(orderId: number) {
     const order = await this.orderRepo.findOneBy({ id: orderId });
     if (!order) throw new NotFoundException('Order not found');
+    return order;
+  }
+
+  async getPayableOrder(orderId: number) {
+    const order = await this.findByIdOrFail(orderId);
+    if (order.status === OrderStatus.PAID) {
+      throw new BadRequestException('Order is not in a payable state');
+    }
+
     return order;
   }
 }

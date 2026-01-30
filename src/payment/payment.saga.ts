@@ -12,14 +12,7 @@ export class PaymentSagaOrchestrator {
   ) {}
 
   async execute(orderId: number) {
-    const order = await this.orderService.findByIdOrFail(orderId);
-
-    // if (order.status !== 'CREATED') {
-    //   throw new BadRequestException(
-    //     'Order is not in a valid state for payment',
-    //   );
-    // }
-
+    const order = await this.orderService.getPayableOrder(orderId);
     const idempotencyKey = `order-${orderId}-payment`;
     let payment: { success: boolean; paymentId: string } | null = null;
 
