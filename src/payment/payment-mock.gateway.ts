@@ -8,7 +8,7 @@ export class MockPaymentGateway {
   ): Promise<{ success: boolean; paymentId: string }> {
     // Simulate real-world unpredictability
     const random = Math.random();
-    const shouldFail = random < 0.1; // 90% success rate
+    const shouldFail = random < 0.6; // 90% success rate
     console.log(`💰 Charging amount: ${amount}. Success: ${!shouldFail}`);
 
     if (shouldFail) {

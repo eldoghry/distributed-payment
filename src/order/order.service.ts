@@ -23,6 +23,11 @@ export class OrderService {
     const order = await this.orderRepo.findOneBy({ id: orderId });
     if (!order) throw new Error('Order not found');
 
+    if (order.status === OrderStatus.PAID) {
+      console.log(`⚠️ Order ${orderId} is already marked as PAID.`);
+      return;
+    }
+
     order.status = OrderStatus.PAID;
     await this.orderRepo.save(order);
 

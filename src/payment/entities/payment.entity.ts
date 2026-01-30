@@ -37,4 +37,20 @@ export class Payment {
   @OneToOne(() => Order)
   @JoinColumn({ name: 'orderId' })
   order: Order;
+
+  @Column({ type: 'timestamp', nullable: true })
+  paidAt: Date;
+
+  @Column({ nullable: false, unique: true })
+  idempotencyKey: string;
+
+  paid(paymentId: string) {
+    this.paidAt = new Date();
+    this.paymentId = paymentId;
+    this.status = PaymentStatus.SUCCESS;
+  }
+
+  fail() {
+    this.status = PaymentStatus.FAILED;
+  }
 }

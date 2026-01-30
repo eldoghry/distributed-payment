@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { OrderService } from 'src/order/order.service';
 import { PaymentService } from './payment.service';
 import { PaymentStatus } from './entities/payment.entity';
+import { retry } from 'src/helper';
 
 @Injectable()
 export class PaymentSagaOrchestrator {
@@ -12,25 +13,37 @@ export class PaymentSagaOrchestrator {
 
   async execute(orderId: number) {
     const order = await this.orderService.findByIdOrFail(orderId);
-    let paymentId: string | null = null;
 
-    if (order.status !== 'CREATED') {
-      throw new BadRequestException(
-        'Order is not in a valid state for payment',
+    // if (order.status !== 'CREATED') {
+    //   throw new BadRequestException(
+    //     'Order is not in a valid state for payment',
+    //   );
+    // }
+
+    const idempotencyKey = `order-${orderId}-payment`;
+    let payment: { success: boolean; paymentId: string } | null = null;
+
+    // step 1: charge payment
+    try {
+      payment = await retry(
+        async () =>
+          this.paymentService.charge(orderId, order.amount, idempotencyKey),
+        3,
+        1000,
       );
+    } catch (error) {
+      throw error;
     }
 
+    // step 2: mark order as paid
     try {
-      const payment = await this.paymentService.charge(orderId, order.amount);
-      paymentId = payment.paymentId;
-      await this.orderService.markAsPaid(orderId);
+      if (!payment?.success) throw new Error('Payment failed');
 
+      await this.orderService.markAsPaid(orderId);
       return { success: true, payment };
     } catch (error) {
-      await this.orderService.markAsFailed(orderId);
-
-      if (paymentId) {
-        await this.paymentService.refund(orderId, paymentId);
+      if (payment?.success && payment?.paymentId) {
+        await this.paymentService.refund(orderId, payment.paymentId);
       }
 
       return { success: false, error: error?.message };
