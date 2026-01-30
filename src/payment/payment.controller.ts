@@ -1,22 +1,12 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
-import { PaymentService } from './payment.service';
-import { CreatePaymentDto } from './dto/create-payment.dto';
-import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { Controller, Post, Param } from '@nestjs/common';
+import { PaymentSagaOrchestrator } from './payment.saga';
 
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(private readonly saga: PaymentSagaOrchestrator) {}
 
   @Post(':orderId')
   async pay(@Param('orderId') orderId: number) {
-    return this.paymentService.processPayment(orderId);
+    return this.saga.execute(orderId);
   }
 }

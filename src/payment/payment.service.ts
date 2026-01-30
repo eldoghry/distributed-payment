@@ -4,51 +4,60 @@ import { Repository } from 'typeorm';
 import { Payment, PaymentStatus } from './entities/payment.entity';
 import { MockPaymentGateway } from './payment-mock.gateway';
 import { InjectRepository } from '@nestjs/typeorm';
-import { OrderStatus } from 'src/order/entities/order.entity';
 
 @Injectable()
 export class PaymentService {
   constructor(
     @InjectRepository(Payment)
     private readonly paymentRepo: Repository<Payment>,
-    private readonly orderService: OrderService,
     private readonly gateway: MockPaymentGateway,
   ) {}
 
-  async processPayment(orderId: number) {
-    const order = await this.orderService.findByIdOrFail(orderId);
-
-    if (order.status !== OrderStatus.CREATED) {
-      throw new BadRequestException(
-        'Order is not in a valid state for payment',
-      );
-    }
-
+  async charge(orderId: number, amount: number) {
     const payment = this.paymentRepo.create({
       orderId,
-      amount: order.amount,
+      amount,
       status: PaymentStatus.INIT,
     });
 
     await this.paymentRepo.save(payment);
 
     // 🔥 External dependency
-    const result = await this.gateway.charge(payment.amount);
+    try {
+      const result = await this.gateway.charge(payment.amount);
+      await this.updatePaymentStatus(orderId, PaymentStatus.SUCCESS);
+      return result;
+    } catch (error) {
+      console.error('Payment gateway error:', error);
+      await this.updatePaymentStatus(orderId, PaymentStatus.FAILED);
+      throw new Error('Payment  failed');
+    }
+  }
 
-    if (result.success) {
-      payment.status = PaymentStatus.SUCCESS;
-      await this.paymentRepo.save(payment);
+  async refund(orderId: number) {
+    const payment = await this.paymentRepo.findOneBy({ orderId });
 
-      // ❗ Direct synchronous call
-      await this.orderService.markAsPaid(orderId);
-
-      return { success: true };
+    if (!payment) {
+      throw new BadRequestException('Payment not found');
     }
 
-    payment.status = PaymentStatus.FAILED;
-    await this.paymentRepo.save(payment);
+    try {
+      await this.gateway.refund(payment.amount);
+      payment.status = PaymentStatus.REFUNDED;
+      await this.paymentRepo.save(payment);
+    } catch (error) {
+      throw new BadRequestException('Failed to refund payment');
+    }
+  }
 
-    await this.orderService.markAsFailed(orderId);
-    return { success: false };
+  async updatePaymentStatus(orderId: number, status: PaymentStatus) {
+    const payment = await this.paymentRepo.findOneBy({ orderId });
+
+    if (!payment) {
+      throw new BadRequestException('Payment not found');
+    }
+
+    payment.status = status;
+    await this.paymentRepo.save(payment);
   }
 }

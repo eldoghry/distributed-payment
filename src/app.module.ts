@@ -19,7 +19,7 @@ import { PaymentModule } from './payment/payment.module';
       database: process.env.DATABASE_NAME,
       autoLoadEntities: true,
       synchronize: true, // Disable this in production!
-      logging: true,
+      // logging: true,
     }),
     RedisModule,
     OrderModule,
