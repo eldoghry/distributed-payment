@@ -15,7 +15,7 @@ export class PaymentService {
   ) {}
 
   async charge(orderId: number, amount: number, idempotencyKey: string) {
-    await delay(randomTimeMs()); // Simulate network delay
+    await delay(randomTimeMs(15000)); // Simulate network delay
 
     const existing = await this.paymentRepo.findOneBy({ idempotencyKey });
 

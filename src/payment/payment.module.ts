@@ -8,9 +8,14 @@ import { OrderModule } from 'src/order/order.module';
 import { PaymentSagaOrchestrator } from './sagas/payment.saga';
 import { DurablePaymentSagaOrchestrator } from './sagas/durable-payment.saga';
 import { PaymentSaga } from './entities/payament-saga.entity';
+import { RedisModule } from 'src/redis/redis.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Payment, PaymentSaga]), OrderModule],
+  imports: [
+    TypeOrmModule.forFeature([Payment, PaymentSaga]),
+    OrderModule,
+    RedisModule,
+  ],
   controllers: [PaymentController],
   providers: [
     PaymentService,
