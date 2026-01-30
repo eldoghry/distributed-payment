@@ -5,11 +5,18 @@ import { Payment } from './entities/payment.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MockPaymentGateway } from './payment-mock.gateway';
 import { OrderModule } from 'src/order/order.module';
-import { PaymentSagaOrchestrator } from './payment.saga';
+import { PaymentSagaOrchestrator } from './sagas/payment.saga';
+import { DurablePaymentSagaOrchestrator } from './sagas/durable-payment.saga';
+import { PaymentSaga } from './entities/payament-saga.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Payment]), OrderModule],
+  imports: [TypeOrmModule.forFeature([Payment, PaymentSaga]), OrderModule],
   controllers: [PaymentController],
-  providers: [PaymentService, PaymentSagaOrchestrator, MockPaymentGateway],
+  providers: [
+    PaymentService,
+    PaymentSagaOrchestrator,
+    MockPaymentGateway,
+    DurablePaymentSagaOrchestrator,
+  ],
 })
 export class PaymentModule {}

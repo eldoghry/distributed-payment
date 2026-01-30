@@ -48,19 +48,15 @@ export class PaymentService {
     }
   }
 
-  async refund(orderId: number, paymentId: string) {
+  async refund(orderId: number) {
     const payment = await this.paymentRepo.findOneBy({ orderId });
 
     if (!payment) {
       throw new BadRequestException('Payment not found');
     }
 
-    if (payment.paymentId !== paymentId) {
-      throw new BadRequestException('Payment ID mismatch');
-    }
-
     try {
-      await this.gateway.refund(payment.amount, paymentId);
+      await this.gateway.refund(payment.amount, payment.paymentId);
       payment.status = PaymentStatus.REFUNDED;
       await this.paymentRepo.save(payment);
     } catch (error) {

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { OrderService } from 'src/order/order.service';
-import { PaymentService } from './payment.service';
-import { PaymentStatus } from './entities/payment.entity';
+import { PaymentService } from '../payment.service';
+import { PaymentStatus } from '../entities/payment.entity';
 import { retry } from 'src/helper';
 
 @Injectable()
@@ -36,7 +36,7 @@ export class PaymentSagaOrchestrator {
       return { success: true, payment };
     } catch (error) {
       if (payment?.success && payment?.paymentId) {
-        await this.paymentService.refund(orderId, payment.paymentId);
+        await this.paymentService.refund(orderId);
       }
 
       return { success: false, error: error?.message };
