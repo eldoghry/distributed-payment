@@ -25,6 +25,9 @@ export class Payment {
   @Column()
   amount: number;
 
+  @Column({ nullable: true })
+  paymentId: string;
+
   @Column({
     type: 'enum',
     enum: PaymentStatus,

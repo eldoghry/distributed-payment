@@ -26,7 +26,7 @@ export class OrderService {
     order.status = OrderStatus.PAID;
     await this.orderRepo.save(order);
 
-    console.log(`Order ${orderId} marked as PAID.`);
+    console.log(`😄 Order ${orderId} marked as PAID.`);
   }
 
   async markAsFailed(orderId: number) {
@@ -36,7 +36,7 @@ export class OrderService {
     order.status = OrderStatus.FAILED;
     await this.orderRepo.save(order);
 
-    console.log(`Order ${orderId} marked as FAILED due to payment failure.`);
+    console.log(`😞 Order ${orderId} marked as FAILED due to payment failure.`);
   }
 
   async findByIdOrFail(orderId: number) {

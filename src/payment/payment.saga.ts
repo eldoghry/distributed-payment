@@ -12,6 +12,7 @@ export class PaymentSagaOrchestrator {
 
   async execute(orderId: number) {
     const order = await this.orderService.findByIdOrFail(orderId);
+    let paymentId: string | null = null;
 
     if (order.status !== 'CREATED') {
       throw new BadRequestException(
@@ -20,13 +21,19 @@ export class PaymentSagaOrchestrator {
     }
 
     try {
-      await this.paymentService.charge(orderId, order.amount);
-
+      const payment = await this.paymentService.charge(orderId, order.amount);
+      paymentId = payment.paymentId;
       await this.orderService.markAsPaid(orderId);
-      return { success: true };
+
+      return { success: true, payment };
     } catch (error) {
       await this.orderService.markAsFailed(orderId);
-      throw error;
+
+      if (paymentId) {
+        await this.paymentService.refund(orderId, paymentId);
+      }
+
+      return { success: false, error: error?.message };
     }
   }
 }

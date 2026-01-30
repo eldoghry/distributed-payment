@@ -24,9 +24,12 @@ export class PaymentService {
 
     // 🔥 External dependency
     try {
-      const result = await this.gateway.charge(payment.amount);
-      await this.updatePaymentStatus(orderId, PaymentStatus.SUCCESS);
-      return result;
+      const paymentRes = await this.gateway.charge(payment.amount);
+      payment.paymentId = paymentRes.paymentId;
+      payment.status = PaymentStatus.SUCCESS;
+      await this.paymentRepo.save(payment);
+
+      return paymentRes;
     } catch (error) {
       console.error('Payment gateway error:', error);
       await this.updatePaymentStatus(orderId, PaymentStatus.FAILED);
@@ -34,15 +37,19 @@ export class PaymentService {
     }
   }
 
-  async refund(orderId: number) {
+  async refund(orderId: number, paymentId: string) {
     const payment = await this.paymentRepo.findOneBy({ orderId });
 
     if (!payment) {
       throw new BadRequestException('Payment not found');
     }
 
+    if (payment.paymentId !== paymentId) {
+      throw new BadRequestException('Payment ID mismatch');
+    }
+
     try {
-      await this.gateway.refund(payment.amount);
+      await this.gateway.refund(payment.amount, paymentId);
       payment.status = PaymentStatus.REFUNDED;
       await this.paymentRepo.save(payment);
     } catch (error) {
